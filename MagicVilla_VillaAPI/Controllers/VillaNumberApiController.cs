@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using MagicVilla_VillaAPI.Models;
 using MagicVilla_VillaAPI.Models.DTO;
-using MagicVilla_VillaAPI.Repository;
 using MagicVilla_VillaAPI.Repository.IRepository;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -14,11 +13,13 @@ namespace MagicVilla_VillaAPI.Controllers
     {
         protected APIResponse _response;
         private readonly IVillaNumberRepository _dbVillaNumber;
+        private readonly IVillaRepository _dbVilla;
         private readonly IMapper _mapper;
 
-        public VillaNumberApiController(IVillaNumberRepository dbvillaNumber,IMapper mapper)
+        public VillaNumberApiController(IVillaNumberRepository dbvillaNumber,IVillaRepository dbvilla, IMapper mapper)
         {
             _dbVillaNumber = dbvillaNumber;
+            _dbVilla = dbvilla;
             _mapper = mapper;
             this._response = new APIResponse();
         }
@@ -90,6 +91,11 @@ namespace MagicVilla_VillaAPI.Controllers
                     ModelState.AddModelError("CustomError", "Villa Number Already Exists");
                     return BadRequest(ModelState);
                 }
+                if(await _dbVilla.GetAsync(u=>u.Id==createNumberDTO.VillaId)== null)
+                {
+                    ModelState.AddModelError("CustomError", "Villa Id is Inalid");
+                    return BadRequest(ModelState);
+                }
                 if(createNumberDTO == null)
                 {
                     return BadRequest(createNumberDTO);
@@ -112,7 +118,7 @@ namespace MagicVilla_VillaAPI.Controllers
 
         [HttpDelete("{id:int}", Name = "DeleteVillaNumber")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
         public async Task<ActionResult<APIResponse>> DeleteVillaNumber(int id)
@@ -144,7 +150,7 @@ namespace MagicVilla_VillaAPI.Controllers
         }
         [HttpPut("{id:int}", Name = "UpdateVillaNumber")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
 
         public async Task<ActionResult<APIResponse>> UpdateVillaNumber(int id, [FromBody] VillaUpdateNumberDTO updateNumberDTO)
         {
@@ -153,6 +159,11 @@ namespace MagicVilla_VillaAPI.Controllers
                 if (updateNumberDTO == null || id != updateNumberDTO.VillaNo)
                 {
                     return BadRequest();
+                }
+                if (await _dbVilla.GetAsync(u => u.Id == updateNumberDTO.VillaId) == null)
+                {
+                    ModelState.AddModelError("CustomError", "Villa Id is Inalid");
+                    return BadRequest(ModelState);
                 }
                 VillaNumber model = _mapper.Map<VillaNumber>(updateNumberDTO);
                 await _dbVillaNumber.UpdateAsync(model);
